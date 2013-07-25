@@ -1634,16 +1634,56 @@ window.jstestdriver && (function(window) {
 })(window);
 
 
-window.jasmine && (function(window) {
+(window.jasmine || window.mocha) && (function(window) {
+
+  if (window.jasmine) {
+    afterEach(function() {
+      var spec = getCurrentSpec();
+      spec.$injector = null;
+      spec.$modules = null;
+      angular.mock.clearDataCache();
+    });
+
+    function getCurrentSpec() {
+      return jasmine.getEnv().currentSpec;
+    }
+
+    function isSpecRunning() {
+      var spec = getCurrentSpec();
+      return spec && spec.queue.running;
+    }
+  }
+
+  if (window.mocha) {
+    var currentSpec;
+
+    beforeEach(function() {
+      currentSpec = this;
+    });
+
+    afterEach(function() {
+      var spec = getCurrentSpec();
+      this.$injector = null;
+      this.$modules = null;
+      angular.mock.clearDataCache();
+
+      currentSpec = null;
+    });
+
+    function getCurrentSpec() {
+      return currentSpec;
+    }
+
+    function isSpecRunning() {
+      return getCurrentSpec();
+    }
+  }
 
   afterEach(function() {
     var spec = getCurrentSpec();
-    var injector = spec.$injector;
 
-    spec.$injector = null;
-    spec.$modules = null;
-
-    if (injector) {
+    if (spec) {
+      var injector = spec.$injector;
       injector.get('$rootElement').unbind();
       injector.get('$browser').pollFns.length = 0;
     }
@@ -1662,15 +1702,6 @@ window.jasmine && (function(window) {
     });
     angular.callbacks.counter = 0;
   });
-
-  function getCurrentSpec() {
-    return jasmine.getEnv().currentSpec;
-  }
-
-  function isSpecRunning() {
-    var spec = getCurrentSpec();
-    return spec && spec.queue.running;
-  }
 
   /**
    * @ngdoc function
